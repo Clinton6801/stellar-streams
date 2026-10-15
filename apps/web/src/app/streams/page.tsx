@@ -18,6 +18,7 @@ import {
 import { useWallet } from '@stellar-starter-kit/wallets';
 import { StreamsClient } from '@stellar-starter-kit/sdk';
 import { getStreamStatus, type Stream } from '@stellar-starter-kit/types';
+import { resolveConfig } from '@stellar-starter-kit/core';
 import {
   formatAddress,
   formatStroopsToXlm,
@@ -29,9 +30,9 @@ import {
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
-const NETWORK_PASSPHRASE =
-  process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ?? 'Test SDF Network ; September 2015';
+const config = resolveConfig();
+const RPC_URL = config.rpcUrl;
+const NETWORK_PASSPHRASE = config.passphrase;
 const CONTRACT_ID = process.env.NEXT_PUBLIC_STREAM_CONTRACT_ID ?? '';
 const DEFAULT_TOKEN =
   process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ??

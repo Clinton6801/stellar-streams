@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@stellar-starter-kit/wallets';
 import { EscrowClient } from '@stellar-starter-kit/contracts';
+import { resolveConfig } from '@stellar-starter-kit/core';
 import deployments from '../../generated/deployments.json';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -81,9 +82,10 @@ export default function EscrowDemo() {
   const [lookupResult, setLookupResult] = useState<EscrowDetails | null>(null);
   const [lookupLoading, setLookupLoading] = useState<boolean>(false);
 
+  const config = resolveConfig();
   const contractId = deployments.escrow;
-  const rpcUrl = 'https://soroban-testnet.stellar.org';
-  const passphrase = 'Test SDF Network ; September 2015';
+  const rpcUrl = config.rpcUrl;
+  const passphrase = config.passphrase;
 
   const addLog = useCallback(
     (type: LogEntry['type'], status: LogEntry['status'], details: string, hash?: string) => {
