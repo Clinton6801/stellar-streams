@@ -18,7 +18,6 @@ import {
 import { useWallet } from '@stellar-starter-kit/wallets';
 import { StreamsClient } from '@stellar-starter-kit/sdk';
 import { getStreamStatus, type Stream } from '@stellar-starter-kit/types';
-import { resolveConfig } from '@stellar-starter-kit/core';
 import {
   formatAddress,
   formatStroopsToXlm,
@@ -27,16 +26,27 @@ import {
   formatBps,
   formatDuration,
 } from '@stellar-starter-kit/utils';
+import { parseEnvironment } from '@stellar-starter-kit/config';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const config = resolveConfig();
-const RPC_URL = config.rpcUrl;
-const NETWORK_PASSPHRASE = config.passphrase;
-const CONTRACT_ID = process.env.NEXT_PUBLIC_STREAM_CONTRACT_ID ?? '';
-const DEFAULT_TOKEN =
-  process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ??
-  'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X';
+// Parse and validate environment configuration
+const envResult = parseEnvironment();
+if (!envResult.success) {
+  console.error('Environment configuration is invalid:');
+  envResult.errors.forEach((error) => {
+    console.error(`  ${error.field}: ${error.message}`);
+  });
+  throw new Error(
+    `Environment validation failed with ${envResult.errors.length} error(s). Check the console for details.`
+  );
+}
+
+const { config } = envResult;
+const RPC_URL = config.sorobanRpcUrl;
+const NETWORK_PASSPHRASE = config.networkPassphrase;
+const CONTRACT_ID = config.streamContractId ?? '';
+const DEFAULT_TOKEN = config.tokenContractId;
 
 const DAY = 86_400;
 
