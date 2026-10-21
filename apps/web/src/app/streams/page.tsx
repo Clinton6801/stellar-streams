@@ -26,27 +26,17 @@ import {
   formatBps,
   formatDuration,
 } from '@stellar-starter-kit/utils';
-import { parseEnvironment } from '@stellar-starter-kit/config';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-// Parse and validate environment configuration
-const envResult = parseEnvironment();
-if (!envResult.success) {
-  console.error('Environment configuration is invalid:');
-  envResult.errors.forEach((error) => {
-    console.error(`  ${error.field}: ${error.message}`);
-  });
-  throw new Error(
-    `Environment validation failed with ${envResult.errors.length} error(s). Check the console for details.`
-  );
-}
-
-const { config } = envResult;
-const RPC_URL = config.sorobanRpcUrl;
-const NETWORK_PASSPHRASE = config.networkPassphrase;
-const CONTRACT_ID = config.streamContractId ?? '';
-const DEFAULT_TOKEN = config.tokenContractId;
+// Configuration from environment variables
+const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+const NETWORK_PASSPHRASE =
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015';
+const CONTRACT_ID = process.env.NEXT_PUBLIC_STREAM_CONTRACT_ID ?? '';
+const DEFAULT_TOKEN =
+  process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ??
+  'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X';
 
 const DAY = 86_400;
 
@@ -101,7 +91,7 @@ export default function StreamsDashboard() {
         setStream(found);
         setClaimable(found ? await client.claimable(id).catch(() => 0n) : 0n);
         if (!found) notify('error', `No stream found with id ${id}.`);
-      } catch (err) {
+      } catch (err: unknown) {
         notify('error', err instanceof Error ? err.message : 'Failed to load stream.');
       } finally {
         setLoadingStream(false);
@@ -119,7 +109,7 @@ export default function StreamsDashboard() {
         const { hash } = await action();
         notify('success', `${label} submitted successfully. Tx ${formatAddress(hash, 6)}`);
         await loadStream(id);
-      } catch (err) {
+      } catch (err: unknown) {
         notify('error', err instanceof Error ? err.message : `${label} failed.`);
       } finally {
         setBusy(false);
@@ -159,7 +149,7 @@ export default function StreamsDashboard() {
       });
       notify('success', `Stream created. Tx ${formatAddress(hash, 6)}`);
       setRecipient('');
-    } catch (err) {
+    } catch (err: unknown) {
       notify('error', err instanceof Error ? err.message : 'Failed to create stream.');
     } finally {
       setBusy(false);

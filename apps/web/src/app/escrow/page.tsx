@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWallet } from '@stellar-starter-kit/wallets';
 import { EscrowClient } from '@stellar-starter-kit/contracts';
-import { parseEnvironment } from '@stellar-starter-kit/config';
 import deployments from '../../generated/deployments.json';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -46,18 +45,13 @@ interface EscrowDetails {
 }
 
 // Parse and validate environment configuration
-const envResult = parseEnvironment();
-if (!envResult.success) {
-  console.error('Environment configuration is invalid:');
-  envResult.errors.forEach((error) => {
-    console.error(`  ${error.field}: ${error.message}`);
-  });
-  throw new Error(
-    `Environment validation failed with ${envResult.errors.length} error(s). Check the console for details.`
-  );
-}
-
-const { config } = envResult;
+const rpcUrl = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+const passphrase =
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015';
+const escrowContractId = process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ID || '';
+const tokenContractId =
+  process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ||
+  'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X';
 
 export default function EscrowDemo() {
   const {
@@ -81,9 +75,7 @@ export default function EscrowDemo() {
   const [createId, setCreateId] = useState<string>('');
   const [createPayee, setCreatePayee] = useState<string>('');
   const [createArbiter, setCreateArbiter] = useState<string>('');
-  const [createToken, setCreateToken] = useState<string>(
-    config.tokenContractId,
-  ); // Native XLM
+  const [createToken, setCreateToken] = useState<string>(tokenContractId); // Native XLM
   const [createAmount, setCreateAmount] = useState<string>('10'); // in XLM
   const [createDeadline, setCreateDeadline] = useState<string>('3600'); // seconds from now
 
@@ -96,9 +88,9 @@ export default function EscrowDemo() {
   const [lookupResult, setLookupResult] = useState<EscrowDetails | null>(null);
   const [lookupLoading, setLookupLoading] = useState<boolean>(false);
 
-  const contractId = deployments.escrow || config.escrowContractId;
-  const rpcUrl = config.sorobanRpcUrl;
-  const passphrase = config.networkPassphrase;
+  const contractId = deployments.escrow || escrowContractId;
+  const rpcUrlFinal = rpcUrl;
+  const passphraseFinal = passphrase;
 
   const addLog = useCallback(
     (type: LogEntry['type'], status: LogEntry['status'], details: string, hash?: string) => {
@@ -119,8 +111,8 @@ export default function EscrowDemo() {
   const getClient = useCallback(() => {
     return new EscrowClient.Client({
       contractId,
-      rpcUrl,
-      networkPassphrase: passphrase,
+      rpcUrl: rpcUrlFinal,
+      networkPassphrase: passphraseFinal,
       publicKey: activeAddress || undefined,
       signTransaction: async (txXdr) => {
         const signedTxXdr = await signTransaction(txXdr);
@@ -404,7 +396,7 @@ export default function EscrowDemo() {
                         setError(null);
                         try {
                           await connect('freighter');
-                        } catch (err) {
+                        } catch (err: unknown) {
                           console.error(err);
                           setError(
                             err instanceof Error
