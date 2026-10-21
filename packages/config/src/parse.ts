@@ -4,9 +4,6 @@ import {
   getNetworkByPassphrase,
   getNetworkByRpcUrl,
   getNetworkByHorizonUrl,
-  isPassphraseForNetwork,
-  isRpcUrlForNetwork,
-  isHorizonUrlForNetwork,
 } from './networks.js';
 
 /**
@@ -29,8 +26,7 @@ const ENV_VARS = {
  */
 const DEFAULTS = {
   NETWORK: 'testnet' as const,
-  TOKEN_CONTRACT_ID:
-    'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X' as const,
+  TOKEN_CONTRACT_ID: 'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X' as const,
 };
 
 /**
@@ -50,7 +46,7 @@ const DEFAULTS = {
  * const config = result.config; // Fully typed and validated
  */
 export function parseEnvironment(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = typeof process !== 'undefined' ? process.env : {},
 ): ParseResult {
   const errors: ValidationError[] = [];
 
@@ -78,10 +74,10 @@ export function parseEnvironment(
   const knownNetworkConfig = KNOWN_NETWORKS[network];
 
   // Determine primary network configuration source and validate consistency
-  const networkSource = determineNetworkSource(
+  determineNetworkSource(
     { network, rawHorizonUrl, rawSorobanRpcUrl, rawNetworkPassphrase, rawExpertUrl },
     knownNetworkConfig,
-    errors
+    errors,
   );
 
   // Resolve final configuration values
@@ -171,7 +167,7 @@ function determineNetworkSource(
     rawExpertUrl?: string;
   },
   knownNetworkConfig: (typeof KNOWN_NETWORKS)[Network],
-  errors: ValidationError[]
+  errors: ValidationError[],
 ): 'network' | 'passphrase' | 'rpc' | 'horizon' {
   // Check passphrase first - it's the most authoritative for network validation
   if (rawNetworkPassphrase) {
@@ -197,7 +193,9 @@ function determineNetworkSource(
     if (!rpcNetwork) {
       errors.push({
         field: ENV_VARS.SOROBAN_RPC_URL,
-        message: `RPC URL "${rawSorobanRpcUrl}" does not match any known Stellar network. Use one of: ${Object.values(KNOWN_NETWORKS)
+        message: `RPC URL "${rawSorobanRpcUrl}" does not match any known Stellar network. Use one of: ${Object.values(
+          KNOWN_NETWORKS,
+        )
           .map((n) => n.sorobanRpcUrl)
           .join(', ')}`,
         severity: 'error',
@@ -217,7 +215,9 @@ function determineNetworkSource(
     if (!horizonNetwork) {
       errors.push({
         field: ENV_VARS.HORIZON_URL,
-        message: `Horizon URL "${rawHorizonUrl}" does not match any known Stellar network. Use one of: ${Object.values(KNOWN_NETWORKS)
+        message: `Horizon URL "${rawHorizonUrl}" does not match any known Stellar network. Use one of: ${Object.values(
+          KNOWN_NETWORKS,
+        )
           .map((n) => n.horizonUrl)
           .join(', ')}`,
         severity: 'error',
