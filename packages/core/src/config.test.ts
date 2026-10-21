@@ -1,9 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  resolveConfig,
-  getDefaultConfig,
-  ConfigResolutionError,
-} from './config';
+import { describe, it, expect } from 'vitest';
+import { resolveConfig, getDefaultConfig, ConfigResolutionError } from './config';
 import { NETWORKS } from './networks';
 
 describe('resolveConfig', () => {
@@ -160,8 +156,8 @@ describe('resolveConfig', () => {
         expect.fail('Should have thrown ConfigResolutionError');
       } catch (error) {
         expect(error).toBeInstanceOf(ConfigResolutionError);
-        expect(error.message).toContain(invalidPassphrase);
-        expect(error.message).toContain(NETWORKS.testnet.passphrase);
+        expect((error as ConfigResolutionError).message).toContain(invalidPassphrase);
+        expect((error as ConfigResolutionError).message).toContain(NETWORKS.testnet.passphrase);
       }
     });
   });
@@ -189,7 +185,7 @@ describe('resolveConfig', () => {
         expect.fail('Should have thrown ConfigResolutionError');
       } catch (error) {
         expect(error).toBeInstanceOf(ConfigResolutionError);
-        expect(error.message).toContain('production');
+        expect((error as ConfigResolutionError).message).toContain('production');
       }
     });
 
@@ -201,7 +197,7 @@ describe('resolveConfig', () => {
         expect.fail('Should have thrown ConfigResolutionError');
       } catch (error) {
         expect(error).toBeInstanceOf(ConfigResolutionError);
-        expect(error.message).toContain('local, testnet, mainnet');
+        expect((error as ConfigResolutionError).message).toContain('local, testnet, mainnet');
       }
     });
 
@@ -212,7 +208,7 @@ describe('resolveConfig', () => {
         });
         expect.fail('Should have thrown ConfigResolutionError');
       } catch (error) {
-        expect(error.name).toBe('ConfigResolutionError');
+        expect((error as ConfigResolutionError).name).toBe('ConfigResolutionError');
       }
     });
   });
