@@ -45,21 +45,28 @@ const DEFAULTS = {
  * }
  * const config = result.config; // Fully typed and validated
  */
-export function parseEnvironment(
-  env: Record<string, string | undefined> = typeof process !== 'undefined' ? process.env : {},
-): ParseResult {
+export function parseEnvironment(env?: Record<string, string | undefined>): ParseResult {
   const errors: ValidationError[] = [];
 
+  // Use provided env or fallback to process.env if available
+  const processEnv =
+    typeof globalThis !== 'undefined' && 'process' in globalThis
+      ? ((globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process
+          ?.env ?? {})
+      : {};
+  const environment = env || processEnv;
+
   // Extract raw values from environment
-  const rawNetwork = env[ENV_VARS.NETWORK]?.trim() || DEFAULTS.NETWORK;
-  const rawHorizonUrl = env[ENV_VARS.HORIZON_URL]?.trim();
-  const rawSorobanRpcUrl = env[ENV_VARS.SOROBAN_RPC_URL]?.trim();
-  const rawNetworkPassphrase = env[ENV_VARS.NETWORK_PASSPHRASE]?.trim();
-  const rawExpertUrl = env[ENV_VARS.EXPERT_URL]?.trim();
-  const rawStreamContractId = env[ENV_VARS.STREAM_CONTRACT_ID]?.trim();
-  const rawSplitsContractId = env[ENV_VARS.SPLITS_CONTRACT_ID]?.trim();
-  const rawEscrowContractId = env[ENV_VARS.ESCROW_CONTRACT_ID]?.trim();
-  const rawTokenContractId = env[ENV_VARS.TOKEN_CONTRACT_ID]?.trim() || DEFAULTS.TOKEN_CONTRACT_ID;
+  const rawNetwork = environment[ENV_VARS.NETWORK]?.trim() || DEFAULTS.NETWORK;
+  const rawHorizonUrl = environment[ENV_VARS.HORIZON_URL]?.trim();
+  const rawSorobanRpcUrl = environment[ENV_VARS.SOROBAN_RPC_URL]?.trim();
+  const rawNetworkPassphrase = environment[ENV_VARS.NETWORK_PASSPHRASE]?.trim();
+  const rawExpertUrl = environment[ENV_VARS.EXPERT_URL]?.trim();
+  const rawStreamContractId = environment[ENV_VARS.STREAM_CONTRACT_ID]?.trim();
+  const rawSplitsContractId = environment[ENV_VARS.SPLITS_CONTRACT_ID]?.trim();
+  const rawEscrowContractId = environment[ENV_VARS.ESCROW_CONTRACT_ID]?.trim();
+  const rawTokenContractId =
+    environment[ENV_VARS.TOKEN_CONTRACT_ID]?.trim() || DEFAULTS.TOKEN_CONTRACT_ID;
 
   // Validate network is a known value
   if (!isValidNetwork(rawNetwork)) {
