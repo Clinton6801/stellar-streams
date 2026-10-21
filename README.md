@@ -4,7 +4,7 @@
 
 **Continuous payment streams, linear vesting, and payment splits on Stellar & Soroban.**
 
-[![CI](https://img.shields.io/github/actions/workflow/status/SorobanForge/stellar-starter-kit/ci.yml?branch=main&style=for-the-badge&logo=github&logoColor=white)](https://github.com/SorobanForge/stellar-starter-kit/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/SorobanForge/stellar-streams/ci.yml?branch=main&style=for-the-badge&logo=github&logoColor=white)](https://github.com/SorobanForge/stellar-streams/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Rust](https://img.shields.io/badge/Soroban-soroban--sdk%2027-orange?style=for-the-badge&logo=rust&logoColor=white)](contracts)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript&logoColor=white)](packages)
@@ -27,8 +27,10 @@ Everything runs on [Soroban](https://soroban.stellar.org) smart contracts writte
 typed TypeScript SDK and an open web dashboard.
 
 > **Project status:** pre-1.0. The contracts are implemented, unit-tested, and build clean under
-> `clippy` / `rustfmt`. They have **not** been audited or deployed to Mainnet. See the
-> [Roadmap](ROADMAP.md) for what's next.
+> `clippy` / `rustfmt`. They have **not** been audited or deployed to Mainnet. Before integrating,
+> read the [security model and trust assumptions](SECURITY.md#security-model) — who can cancel,
+> who holds fees, what the arbiter may do, and the inherent risks (no upgradeability, unaudited
+> contracts, admin key custody, TTL expiry). See the [Roadmap](ROADMAP.md) for what's next.
 
 ---
 
@@ -63,7 +65,7 @@ stellar/
 ├── apps/
 │   └── web/                  # Next.js dashboard (/streams, /escrow, /docs)
 ├── scripts/                  # cross-platform build/deploy/invoke scripts
-└── docs/                     # development guide
+└── docs/                     # development guide + contract reference + migration guide
 ```
 
 ---
@@ -99,14 +101,16 @@ The flagship contract locks tokens up front and releases them linearly.
 | :------------------------------------------------------------------- | :------------------------------------------------------------------------ |
 | `initialize(admin, treasury, fee_bps)`                               | Configure the optional protocol fee (cap 10%).                            |
 | `create_stream(sender, recipient, token, amount, start, end, cliff)` | Lock tokens and open a stream. Returns the stream id.                     |
+| `create_streams(sender, token, entries)`                             | Lock a whole batch atomically. Returns the new ids, in input order.       |
 | `withdraw(id)`                                                       | Recipient claims the vested, unclaimed balance.                           |
 | `cancel(id)`                                                         | Sender cancels; unvested funds are refunded, vested funds stay claimable. |
 | `claimable(id)` / `vested(id)`                                       | View helpers.                                                             |
 | `get_stream(id)` / `get_config()` / `next_stream_id()`               | Read helpers.                                                             |
 
 Safety properties enforced on-chain: `end > start`, `start ≤ cliff ≤ end`, `amount > 0`,
-authenticated sender/recipient, and idempotent cancel. See
-[`contracts/stream/src/lib.rs`](contracts/stream/src/lib.rs).
+authenticated sender/recipient, and idempotent cancel. `create_streams` applies every one of
+those checks to every entry before it moves a token, so a batch either fully lands or changes
+nothing. See [`contracts/stream/src/lib.rs`](contracts/stream/src/lib.rs).
 
 ### Vesting math
 
@@ -136,6 +140,51 @@ must be the same length, every share must be non-zero, and duplicate recipients 
 rounding remainder to the final recipient, so no dust is stranded. Each call requires the payer's
 signature and emits a `splits`-tagged event for indexers.
 See [`contracts/splits/src/lib.rs`](contracts/splits/src/lib.rs).
+
+---
+
+## The `escrow` contract
+
+The `escrow` contract holds a single payment between a payer and a payee until an arbiter or one of
+the parties releases or refunds it. The `deadline` decides when a **funded** escrow becomes
+refundable to the payer.
+
+| Function                                                            | Description                                                                                               |
+| :------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------- |
+| `create_escrow(id, payer, payee, arbiter, token, amount, deadline)` | Register an escrow. `amount > 0` and the deadline must be in the future. Status `Created`.                |
+| `fund_escrow(id)`                                                   | Payer transfers `amount` into the contract. Status → `Funded`.                                            |
+| `release_escrow(id, caller)`                                        | Payer or arbiter sends the locked funds to the payee. Status → `Released`.                                |
+| `refund_escrow(id, caller)`                                         | Payee or arbiter returns the locked funds to the payer. Status → `Refunded`.                              |
+| `cancel_escrow(id, caller)`                                         | Payer cancels: always while `Created`, and once `Funded` only at or after the deadline (refund to payer). |
+| `get_escrow(id)`                                                    | Read helper.                                                                                              |
+
+**Deadline rule:** `create_escrow` requires `deadline > env.ledger().timestamp()` at call time and
+returns `EscrowError::InvalidDeadline` (code `9`) when `deadline <= now` — a deadline in the past, or
+exactly the current ledger timestamp, is rejected. Without this check a funded escrow could be
+cancelled by the payer the moment it was funded, since `cancel_escrow` releases the funds back to
+the payer as soon as the deadline has passed. Note that only `cancel_escrow` consults the deadline:
+`release_escrow` and `refund_escrow` work at any time before finalization, including after the
+deadline.
+See [`contracts/escrow/src/lib.rs`](contracts/escrow/src/lib.rs).
+
+---
+
+## Contract reference
+
+Every entry point with its argument and return types, every error variant with its numeric code and
+the condition that raises it, and every event topic with its payload shape, for all three contracts:
+**[docs/contracts.md](docs/contracts.md)**.
+
+For upgrading existing projects and mapping package imports, see the **[Migration Guide](docs/migration.md)**.
+For the complete list of technical documentation, see the **[Documentation Index](docs/README.md)**.
+
+The sections above are orientation. That page is what an integrator mapping a failure to a
+user-facing message, or an indexer decoding an event, should actually be reading — including the
+cases the Rust does not advertise: two error codes that are defined but never returned, and an
+`escrow` `cancelled` event that carries no amount.
+
+For copy-pasteable client examples covering SSR-safe construction, stream reads, config reads,
+write methods, and typed error handling, see the [SDK guide](docs/sdk.md).
 
 ---
 
@@ -180,9 +229,18 @@ pnpm deploy:splits
 pnpm run node:local     # docker compose up -d (Stellar Quickstart)
 ```
 
+### End-to-end walkthrough
+
+Want the complete path — local node → deploy `stream` → fund accounts → create a stream →
+advance time → withdraw — with every command and its expected output? Follow the
+[end-to-end walkthrough](docs/development-guide.md#3-end-to-end-walkthrough-a-stream-from-zero-to-withdraw)
+in the development guide (verified on Linux).
+
 ---
 
 ## SDK usage
+
+> **Migrating from `@stellar-starter-kit/*`?** See the **[Migration Guide](docs/migration.md)** for a complete import mapping table and codemod snippets.
 
 ```typescript
 import { StreamsClient } from '@stellar-starter-kit/sdk';
@@ -207,12 +265,52 @@ const { hash } = await client.createStream({
 });
 ```
 
+### Streaming a custom token
+
+`token` can be any SEP-41 token contract id (`C...`): the native XLM SAC, the SAC of an issued
+asset, or a custom Soroban token. Amounts are always in the token's **smallest unit**, and the
+number of decimals comes from the token itself (`decimals()`), not from a hardcoded 7. Read it with
+`getTokenMetadata` and scale with the decimals-aware helpers:
+
+```typescript
+import { StreamsClient, assetContractId } from '@stellar-starter-kit/sdk';
+import { formatTokenAmount, parseTokenAmount } from '@stellar-starter-kit/utils';
+
+// The SAC of an issued asset (or pass 'native' for XLM), or any custom token contract id.
+const token = assetContractId(`USDC:${USDC_ISSUER}`, 'Test SDF Network ; September 2015');
+
+const { decimals, symbol } = await client.getTokenMetadata(token); // SACs have 7; custom tokens may differ
+
+await client.createStream({
+  sender: address,
+  recipient,
+  token,
+  amount: parseTokenAmount('250.5', decimals).toString(),
+  startTime: now,
+  endTime: now + 30 * 86_400,
+  cliffTime: now,
+});
+
+// Display: format with the decimals of the stream's own token.
+const stream = await client.getStream(id);
+const meta = await client.getTokenMetadata(stream!.token);
+`${formatTokenAmount(stream!.totalAmount, meta.decimals)} ${meta.symbol}`; // "250.5 USDC"
+```
+
+`createStream` and `getTokenMetadata` reject anything that is not a contract id, so a `G...`
+account or an `ISSUER:CODE` string fails fast before any RPC call.
+
 Formatting and vesting helpers live in `@stellar-starter-kit/utils`:
 
 ```typescript
-import { formatStroopsToXlm, computeVestedAmount } from '@stellar-starter-kit/utils';
+import {
+  formatTokenAmount,
+  formatStroopsToXlm,
+  computeVestedAmount,
+} from '@stellar-starter-kit/utils';
 
-formatStroopsToXlm(123_456_789n); // "12.3456789"
+formatTokenAmount(1_234_567n, 6); // "1.234567" — any token, given its decimals
+formatStroopsToXlm(123_456_789n); // "12.3456789" — shorthand for 7-decimal XLM
 computeVestedAmount(schedule, now); // bigint
 ```
 
@@ -237,15 +335,15 @@ pnpm run dev
 
 Copy `.env.example` to `.env.local` and set:
 
-| Variable                                 | Purpose                                             |
-| :--------------------------------------- | :-------------------------------------------------- |
-| `NEXT_PUBLIC_STELLAR_NETWORK`            | `local`, `testnet`, or `mainnet`.                   |
-| `NEXT_PUBLIC_HORIZON_URL`                | Horizon endpoint.                                   |
-| `NEXT_PUBLIC_SOROBAN_RPC_URL`            | Soroban RPC endpoint.                               |
-| `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` | Network passphrase.                                 |
-| `NEXT_PUBLIC_STREAM_CONTRACT_ID`         | Deployed `stream` contract id.                      |
-| `NEXT_PUBLIC_SPLITS_CONTRACT_ID`         | Deployed `splits` contract id.                      |
-| `NEXT_PUBLIC_TOKEN_CONTRACT_ID`          | Token contract to stream (defaults to testnet XLM). |
+| Variable                                 | Purpose                                                                                      |
+| :--------------------------------------- | :------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_STELLAR_NETWORK`            | `local`, `testnet`, or `mainnet`.                                                            |
+| `NEXT_PUBLIC_HORIZON_URL`                | Horizon endpoint.                                                                            |
+| `NEXT_PUBLIC_SOROBAN_RPC_URL`            | Soroban RPC endpoint.                                                                        |
+| `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` | Network passphrase.                                                                          |
+| `NEXT_PUBLIC_STREAM_CONTRACT_ID`         | Deployed `stream` contract id.                                                               |
+| `NEXT_PUBLIC_SPLITS_CONTRACT_ID`         | Deployed `splits` contract id.                                                               |
+| `NEXT_PUBLIC_TOKEN_CONTRACT_ID`          | Default token contract in the create form (defaults to testnet XLM SAC); any token id works. |
 
 ---
 
@@ -267,6 +365,13 @@ Security reports go through [SECURITY.md](SECURITY.md), not public issues.
 
 Testnet contract ids and explorer links are recorded in [docs/deployments.md](docs/deployments.md).
 
+## Troubleshooting
+
+Seeing `Freighter wallet extension is not installed or enabled.`, `No stream contract id
+configured.`, `Account not found`, or `RPC kept answering TRY_AGAIN_LATER ...`? Each known
+symptom with its cause and fix is listed in [docs/troubleshooting.md](docs/troubleshooting.md),
+along with how to confirm the deployment state via the contract ids page.
+
 ## Contributing
 
 We welcome contributions of all sizes. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
@@ -281,7 +386,6 @@ Good places to start:
 
 - Add an integration test that exercises a full stream lifecycle on a local node.
 - Implement the `splits` dashboard page.
-- Add multi-token stream support to the SDK.
 
 ---
 
