@@ -75,7 +75,7 @@ stellar/
 ```mermaid
 graph TD
     Web["apps/web (Next.js 15)"] --> SDK["packages/sdk (StreamsClient)"]
-    Web --> Hooks["packages/hooks (useStream)"]
+    Web --> Hooks["packages/hooks (useStream, mutations)"]
     Web --> Wallets["packages/wallets"]
     SDK --> Types["packages/types"]
     Hooks --> SDK
