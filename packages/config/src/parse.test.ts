@@ -9,14 +9,12 @@ describe('parseEnvironment', () => {
         [ENV_VARS.NETWORK]: 'testnet',
         [ENV_VARS.HORIZON_URL]: KNOWN_NETWORKS.testnet.horizonUrl,
         [ENV_VARS.SOROBAN_RPC_URL]: KNOWN_NETWORKS.testnet.sorobanRpcUrl,
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.testnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.testnet.networkPassphrase,
         [ENV_VARS.EXPERT_URL]: KNOWN_NETWORKS.testnet.expertUrl,
         [ENV_VARS.STREAM_CONTRACT_ID]: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-        [ENV_VARS.SPLITS_CONTRACT_ID]: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
-        [ENV_VARS.ESCROW_CONTRACT_ID]: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
-        [ENV_VARS.TOKEN_CONTRACT_ID]:
-          DEFAULTS.TOKEN_CONTRACT_ID,
+        [ENV_VARS.SPLITS_CONTRACT_ID]: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
+        [ENV_VARS.ESCROW_CONTRACT_ID]: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
+        [ENV_VARS.TOKEN_CONTRACT_ID]: DEFAULTS.TOKEN_CONTRACT_ID,
       };
 
       const result = parseEnvironment(env);
@@ -31,8 +29,8 @@ describe('parseEnvironment', () => {
         networkPassphrase: KNOWN_NETWORKS.testnet.networkPassphrase,
         expertUrl: KNOWN_NETWORKS.testnet.expertUrl,
         streamContractId: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-        splitsContractId: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
-        escrowContractId: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
+        splitsContractId: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
+        escrowContractId: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
         tokenContractId: DEFAULTS.TOKEN_CONTRACT_ID,
       });
     });
@@ -79,8 +77,7 @@ describe('parseEnvironment', () => {
         [ENV_VARS.NETWORK]: 'mainnet',
         [ENV_VARS.HORIZON_URL]: KNOWN_NETWORKS.mainnet.horizonUrl,
         [ENV_VARS.SOROBAN_RPC_URL]: KNOWN_NETWORKS.mainnet.sorobanRpcUrl,
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.mainnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.mainnet.networkPassphrase,
       };
 
       const result = parseEnvironment(env);
@@ -110,8 +107,7 @@ describe('parseEnvironment', () => {
         [ENV_VARS.NETWORK]: 'mainnet',
         [ENV_VARS.HORIZON_URL]: 'https://wrong-horizon-url.example.com',
         [ENV_VARS.SOROBAN_RPC_URL]: KNOWN_NETWORKS.mainnet.sorobanRpcUrl,
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.mainnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.mainnet.networkPassphrase,
       };
 
       const result = parseEnvironment(env);
@@ -130,9 +126,7 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK)).toBe(
-        true
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK)).toBe(true);
       expect(result.errors[0].message).toContain('local, testnet, mainnet');
     });
   });
@@ -142,18 +136,14 @@ describe('parseEnvironment', () => {
       const env = {
         [ENV_VARS.NETWORK]: 'mainnet',
         [ENV_VARS.SOROBAN_RPC_URL]: KNOWN_NETWORKS.mainnet.sorobanRpcUrl,
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.testnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.testnet.networkPassphrase,
       };
 
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE))
-        .toBe(true);
-      const error = result.errors.find(
-        (e) => e.field === ENV_VARS.NETWORK_PASSPHRASE
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE)).toBe(true);
+      const error = result.errors.find((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE);
       expect(error?.message).toContain('mismatch');
       expect(error?.message).toContain('testnet');
       expect(error?.message).toContain('mainnet');
@@ -162,15 +152,13 @@ describe('parseEnvironment', () => {
     it('should detect contradiction: Mainnet passphrase with Testnet network', () => {
       const env = {
         [ENV_VARS.NETWORK]: 'testnet',
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.mainnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.mainnet.networkPassphrase,
       };
 
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE))
-        .toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE)).toBe(true);
     });
 
     it('should detect contradiction: Testnet RPC with Mainnet network', () => {
@@ -182,11 +170,8 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.SOROBAN_RPC_URL))
-        .toBe(true);
-      const error = result.errors.find(
-        (e) => e.field === ENV_VARS.SOROBAN_RPC_URL
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.SOROBAN_RPC_URL)).toBe(true);
+      const error = result.errors.find((e) => e.field === ENV_VARS.SOROBAN_RPC_URL);
       expect(error?.message).toContain('mismatch');
     });
 
@@ -199,9 +184,7 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.HORIZON_URL)).toBe(
-        true
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.HORIZON_URL)).toBe(true);
     });
 
     it('should report all contradictions at once', () => {
@@ -209,23 +192,16 @@ describe('parseEnvironment', () => {
         [ENV_VARS.NETWORK]: 'mainnet',
         [ENV_VARS.HORIZON_URL]: KNOWN_NETWORKS.testnet.horizonUrl,
         [ENV_VARS.SOROBAN_RPC_URL]: KNOWN_NETWORKS.testnet.sorobanRpcUrl,
-        [ENV_VARS.NETWORK_PASSPHRASE]:
-          KNOWN_NETWORKS.testnet.networkPassphrase,
+        [ENV_VARS.NETWORK_PASSPHRASE]: KNOWN_NETWORKS.testnet.networkPassphrase,
       };
 
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThanOrEqual(3);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.HORIZON_URL)
-      ).toBe(true);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.SOROBAN_RPC_URL)
-      ).toBe(true);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE)
-      ).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.HORIZON_URL)).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.SOROBAN_RPC_URL)).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE)).toBe(true);
     });
 
     it('should report multiple contract ID validation errors at once', () => {
@@ -239,14 +215,9 @@ describe('parseEnvironment', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors.length).toBeGreaterThanOrEqual(3);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.STREAM_CONTRACT_ID)
-      ).toBe(true);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.SPLITS_CONTRACT_ID)
-      ).toBe(true);
-      expect(result.errors.some((e) => e.field === ENV_VARS.TOKEN_CONTRACT_ID))
-        .toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.STREAM_CONTRACT_ID)).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.SPLITS_CONTRACT_ID)).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.TOKEN_CONTRACT_ID)).toBe(true);
     });
   });
 
@@ -259,9 +230,7 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(
-        result.errors.some((e) => e.field === ENV_VARS.STREAM_CONTRACT_ID)
-      ).toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.STREAM_CONTRACT_ID)).toBe(true);
     });
 
     it('should reject invalid token contract ID', () => {
@@ -272,17 +241,15 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.TOKEN_CONTRACT_ID))
-        .toBe(true);
+      expect(result.errors.some((e) => e.field === ENV_VARS.TOKEN_CONTRACT_ID)).toBe(true);
     });
 
     it('should accept valid contract IDs', () => {
       const env = {
         [ENV_VARS.STREAM_CONTRACT_ID]: 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-        [ENV_VARS.SPLITS_CONTRACT_ID]: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
-        [ENV_VARS.ESCROW_CONTRACT_ID]: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
-        [ENV_VARS.TOKEN_CONTRACT_ID]:
-          'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X',
+        [ENV_VARS.SPLITS_CONTRACT_ID]: 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB7XZ',
+        [ENV_VARS.ESCROW_CONTRACT_ID]: 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGKC',
+        [ENV_VARS.TOKEN_CONTRACT_ID]: DEFAULTS.TOKEN_CONTRACT_ID,
       };
 
       const result = parseEnvironment(env);
@@ -301,11 +268,8 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(false);
-      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE))
-        .toBe(true);
-      const error = result.errors.find(
-        (e) => e.field === ENV_VARS.NETWORK_PASSPHRASE
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE)).toBe(true);
+      const error = result.errors.find((e) => e.field === ENV_VARS.NETWORK_PASSPHRASE);
       expect(error?.message).toContain('not a recognized Stellar network');
     });
   });
@@ -320,12 +284,8 @@ describe('parseEnvironment', () => {
       const result = parseEnvironment(env);
 
       expect(result.success).toBe(true);
-      expect(result.errors.some((e) => e.field === ENV_VARS.EXPERT_URL)).toBe(
-        true
-      );
-      const warning = result.errors.find(
-        (e) => e.field === ENV_VARS.EXPERT_URL
-      );
+      expect(result.errors.some((e) => e.field === ENV_VARS.EXPERT_URL)).toBe(true);
+      const warning = result.errors.find((e) => e.field === ENV_VARS.EXPERT_URL);
       expect(warning?.severity).toBe('warning');
     });
   });
@@ -343,7 +303,7 @@ describe('parseEnvironment', () => {
       expect(result.success).toBe(true);
       expect(result.config?.network).toBe('testnet');
       expect(result.config?.streamContractId).toBe(
-        'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
+        'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
       );
     });
   });

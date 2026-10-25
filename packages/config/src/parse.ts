@@ -26,7 +26,7 @@ const ENV_VARS = {
  */
 const DEFAULTS = {
   NETWORK: 'testnet' as const,
-  TOKEN_CONTRACT_ID: 'CDLZFC3SYJYDZT7K67VZ75HPJGWGN6XXU250DEX2ZJ26C6EU5R144Z7X' as const,
+  TOKEN_CONTRACT_ID: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC' as const,
 };
 
 /**
@@ -77,7 +77,7 @@ export function parseEnvironment(env?: Record<string, string | undefined>): Pars
     });
   }
 
-  const network = rawNetwork as Network;
+  const network: Network = isValidNetwork(rawNetwork) ? rawNetwork : DEFAULTS.NETWORK;
   const knownNetworkConfig = KNOWN_NETWORKS[network];
 
   // Determine primary network configuration source and validate consistency
@@ -127,7 +127,7 @@ export function parseEnvironment(env?: Record<string, string | undefined>): Pars
   }
 
   // If we have errors, return failure immediately
-  if (errors.length > 0) {
+  if (errors.some((error) => error.severity === 'error')) {
     return {
       success: false,
       errors,
@@ -150,7 +150,7 @@ export function parseEnvironment(env?: Record<string, string | undefined>): Pars
   return {
     success: true,
     config,
-    errors: [],
+    errors,
   };
 }
 
